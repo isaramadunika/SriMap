@@ -63,10 +63,9 @@ async function fetchTrainRoutesFromOSM() {
 async function loadLayers() {
     try {
         // Fetch all data in parallel for faster loading
-        const [trainData, restaurantData, roadsData, riversData, disastersData, highwayData] = await Promise.all([
+        const [trainData, restaurantData, riversData, disastersData, highwayData] = await Promise.all([
             fetchTrainRoutesFromOSM(),
             fetch('/data/restaurants_all.geojson').then(r => r.json()).catch(() => ({ type: 'FeatureCollection', features: [] })),
-            fetch('/data/roads.geojson').then(r => r.json()).catch(() => ({ type: 'FeatureCollection', features: [] })),
             fetch('/data/Oya_all.geojson').then(r => r.json()).catch(() => ({ type: 'FeatureCollection', features: [] })),
             fetch('/data/Disaster_all.geojson').then(r => r.json()).catch(() => ({ type: 'FeatureCollection', features: [] })),
             fetchHighwaysFromOSM()
@@ -154,22 +153,6 @@ async function loadLayers() {
                     const type = feature.properties.highway_type || 'road';
                     const ref = feature.properties.ref ? ` (${feature.properties.ref})` : '';
                     layer.bindPopup(`<strong>${name}${ref}</strong><br>Type: ${type}`);
-                }
-            }
-        });
-
-        // Create Roads Layer
-        const roadsLayer = L.geoJSON(roadsData, {
-            style: {
-                color: '#8B4513',
-                weight: 2,
-                opacity: 0.6
-            },
-            onEachFeature: (feature, layer) => {
-                if (feature.properties) {
-                    const name = feature.properties.name || 'Road';
-                    const type = feature.properties.type || 'road';
-                    layer.bindPopup(`<strong>${name}</strong><br>Type: ${type}`);
                 }
             }
         });
@@ -315,7 +298,6 @@ async function loadLayers() {
         // Add layers to map initially
         trainLayer.addTo(map);
         highwayLayer.addTo(map);
-        roadsLayer.addTo(map);
         riversLayer.addTo(map);
         restaurantLayer.addTo(map);
         // districtsLayer.addTo(map); // Commented - file missing
@@ -338,14 +320,6 @@ async function loadLayers() {
                 layer: highwayLayer,
                 iconColor: '#e74c3c',
                 icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6-6 6 6M6 9h12M6 9v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/></svg>'
-            },
-            {
-                id: 'roads',
-                name: 'Roads',
-                description: 'Digitized road network',
-                layer: roadsLayer,
-                iconColor: '#8B4513',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>'
             },
             {
                 id: 'rivers',
