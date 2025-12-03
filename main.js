@@ -340,7 +340,7 @@ async function loadLayers() {
     }
 }
 
-// Simplified, faster layer control with card design
+// Simplified, faster layer control with card design and SVG icons
 function initQuickControl(layerControls) {
     const layerControl = document.getElementById('layer-control');
     const closeBtn = document.getElementById('close-layers');
@@ -352,46 +352,86 @@ function initQuickControl(layerControls) {
     // Clear existing items
     layerList.innerHTML = '';
 
-    // Layer configuration with icons and descriptions
+    // Layer configuration with SVG icons and descriptions
     const layerNames = {
-        trains: { name: 'Train Routes', desc: 'Railways and Stations', color: '#ef4444', icon: '🚂' },
-        highways: { name: 'Highways', desc: 'Roads and highways', color: '#e74c3c', icon: '🛣️' },
-        roads: { name: 'Roads', desc: 'Digitized road network', color: '#8B4513', icon: '🛣️' },
-        rivers: { name: 'Rivers', desc: 'Rivers and waterways', color: '#3498db', icon: '🌊' },
-        restaurants: { name: 'Restaurants', desc: 'Dining locations', color: '#10b981', icon: '🍴' },
-        districts: { name: 'Districts', desc: 'District boundaries', color: '#a855f7', icon: '🗺️' },
-        disasters: { name: 'Disasters', desc: 'Disaster incidents', color: '#dc2626', icon: '⚠️' }
+        trains: { 
+            name: 'Train Routes', 
+            desc: 'Railways and Stations', 
+            color: '#ef4444',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="10" rx="2"></rect><path d="M7 15v2M17 15v2M7 19h10M3 19h18"></path></svg>'
+        },
+        highways: { 
+            name: 'Highways', 
+            desc: 'Roads and highways', 
+            color: '#e74c3c',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v12M18 9v12M6 9h12V3H6v6zm3 6h6M9 15h6"></path></svg>'
+        },
+        roads: { 
+            name: 'Roads', 
+            desc: 'Digitized road network', 
+            color: '#8B4513',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="10" y1="6" x2="14" y2="6"></line><line x1="10" y1="10" x2="14" y2="10"></line><line x1="10" y1="14" x2="14" y2="14"></line><line x1="10" y1="18" x2="14" y2="18"></line></svg>'
+        },
+        rivers: { 
+            name: 'Rivers', 
+            desc: 'Rivers and waterways', 
+            color: '#3498db',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c0-2 1-4 2-5 1 2 2 4 4 5-1 1-2 3-1 5 1-1 3-1 4-2-1 2 0 4 1 5-2-1-3-3-4-5 0 2-1 4-2 5-1-2-2-4-2-5-1 0-1 2-2 3M22 12c0-2-1-4-2-5-1 2-2 4-4 5 1 1 2 3 1 5-1-1-3-1-4-2 1 2 0 4-1 5 2-1 3-3 4-5 0 2 1 4 2 5 1-2 2-4 2-5 1 0 1 2 2 3"></path></svg>'
+        },
+        restaurants: { 
+            name: 'Restaurants', 
+            desc: 'Dining locations', 
+            color: '#10b981',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M18 8h-1V6c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-5 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zM8 6h8v2H8V6z"></path></svg>'
+        },
+        districts: { 
+            name: 'Districts', 
+            desc: 'District boundaries', 
+            color: '#a855f7',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>'
+        },
+        disasters: { 
+            name: 'Disasters', 
+            desc: 'Disaster incidents', 
+            color: '#dc2626',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path></svg>'
+        }
     };
 
     Object.keys(layerControls).forEach(key => {
         const layer = layerControls[key];
-        const { name, desc, color, icon } = layerNames[key];
+        const { name, desc, color, svg } = layerNames[key];
         
         const div = document.createElement('div');
         div.className = 'layer-item active';
         div.innerHTML = `
             <div class="layer-info">
                 <div class="layer-icon" style="background-color: ${color};">
-                    ${icon}
+                    ${svg}
                 </div>
                 <div class="layer-text">
                     <h4>${name}</h4>
                     <p>${desc}</p>
                 </div>
             </div>
-            <span class="layer-status">👁️</span>
+            <svg class="layer-status-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
         `;
 
         div.addEventListener('click', () => {
             const isActive = map.hasLayer(layer);
+            const statusIcon = div.querySelector('.layer-status-icon');
+            
             if (isActive) {
                 map.removeLayer(layer);
                 div.classList.remove('active');
-                div.querySelector('.layer-status').textContent = '❌';
+                statusIcon.innerHTML = '<line x1="1" y1="1" x2="23" y2="23"></line><path d="M10.584 10.587a2 2 0 0 0 2.828 2.83m-3.414-3.415a2 2 0 1 1 2.828 2.829m-2.828-2.829L2 2m11 11l7 7"></path>';
             } else {
                 map.addLayer(layer);
                 div.classList.add('active');
-                div.querySelector('.layer-status').textContent = '👁️';
+                statusIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
             }
         });
 

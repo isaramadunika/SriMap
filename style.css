@@ -202,6 +202,13 @@ main {
     color: #10b981;
 }
 
+.layer-status-icon {
+    width: 24px;
+    height: 24px;
+    color: #06b6d4;
+    flex-shrink: 0;
+}
+
 .layer-footer {
     padding: 12px;
     background: #f8fafc;
