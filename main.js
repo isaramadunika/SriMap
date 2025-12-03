@@ -130,6 +130,20 @@ function createRestaurantLayer(data) {
     });
 }
 
+// Get SVG icon based on disaster type
+function getDisasterIcon(type) {
+    const iconMap = {
+        flood: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z"></path><path d="M12 7v8M8 12h8"/></svg>',
+        earthquake: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 2v4M15 2v4"/></svg>',
+        landslide: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="M2 20h20M4 18l8-8 4 4 8-8"/></svg>',
+        drought: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+        cyclone: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2a10 10 0 0 1 10 10M12 22a10 10 0 0 1-10-10"/></svg>',
+        storm: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="M19 17H5a2 2 0 0 0-2 2v2h4v-2h10v2h4v-2a2 2 0 0 0-2-2z"/><path d="M13 5L9 9M15 5l-2 2"/></svg>',
+        default: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+    };
+    return iconMap[type] || iconMap.default;
+}
+
 // Create Disasters Layer
 function createDisastersLayer(data) {
     return L.geoJSON(data, {
@@ -139,6 +153,7 @@ function createDisastersLayer(data) {
             const isIn = props.is_in?.toLowerCase() || '';
             const lat = latlng.lat;
             const lng = latlng.lng;
+            const disasterType = (props.natural || props.water || props.emergency || '').toLowerCase();
 
             if (isIn.includes('nuwara') || isIn.includes('kandy') || isIn.includes('matara') || 
                 (lat >= 6.7 && lat <= 7.1 && lng >= 80.6 && lng <= 81.1)) {
@@ -159,9 +174,12 @@ function createDisastersLayer(data) {
                 color = '#a855f7';
             }
 
+            // Get icon based on disaster type
+            let iconSvg = getDisasterIcon(disasterType);
+            
             const icon = L.divIcon({
                 className: 'disaster-marker',
-                html: `<div class="disaster-marker-container"><div class="disaster-pulse" style="background-color: ${color}; box-shadow: 0 0 0 0 ${color}80;"></div><div class="disaster-icon" style="background-color: ${color};"></div></div>`,
+                html: `<div class="disaster-marker-container"><div class="disaster-pulse" style="background-color: ${color}; box-shadow: 0 0 0 0 ${color}80;"></div><div class="disaster-icon" style="background-color: ${color};">${iconSvg}</div></div>`,
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             });
@@ -171,7 +189,8 @@ function createDisastersLayer(data) {
         onEachFeature: (feature, layer) => {
             if (feature.properties && feature.properties.name) {
                 const props = feature.properties;
-                const popup = `<strong>${props.name}</strong><br>Location: ${props.is_in || 'Sri Lanka'}`;
+                const disasterType = props.natural || props.water || props.emergency || 'Natural Hazard';
+                const popup = `<strong>${props.name}</strong><br>Type: ${disasterType}<br>Location: ${props.is_in || 'Sri Lanka'}`;
                 layer.bindPopup(popup);
             }
         }
