@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/public/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenMap Project</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>OpenMap Viewer</h1>
+      </header>
+      <main>
+        <div id="map"></div>
+    
+    <!-- Custom Layer Control -->
+    <div id="layer-control" class="layer-control">
+        <div class="layer-header">
+            <div class="header-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                <div class="header-text">
+                    <h3>Map Layers</h3>
+                    <p>Show or hide overlays</p>
+                </div>
+            </div>
+            <button id="close-layers" class="close-btn">×</button>
+        </div>
+        <div class="layer-list">
+            <!-- Items will be injected by JS -->
+        </div>
+        <div class="layer-footer">
+            Click layers to toggle visibility
+        </div>
+    </div>
+    <button id="open-layers" class="open-layers-btn" title="Open layer controls">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+    </button>
+      </main>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

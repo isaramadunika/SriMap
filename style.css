@@ -1,0 +1,363 @@
+:root {
+  --primary-color: #3b82f6;
+  --bg-color: #f3f4f6;
+  --text-color: #1f2937;
+  --header-height: 60px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  height: var(--header-height);
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  z-index: 1000;
+}
+
+h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+main {
+  flex: 1;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#open-layers {
+  display: none;
+}
+
+/* Custom Popup Styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.leaflet-popup-content {
+  margin: 1rem;
+  line-height: 1.5;
+}
+
+.popup-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-color);
+}
+
+.popup-type {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Custom Layer Control */
+.layer-control {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.layer-control.hidden {
+    transform: translateX(20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.layer-header {
+    background: #2c3e50;
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-text h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.header-text p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+.layer-list {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.layer-item:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.layer-item.active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.layer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.layer-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.layer-text h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.layer-text p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.layer-status {
+    color: #94a3b8;
+}
+
+.layer-item.active .layer-status {
+    color: #10b981;
+}
+
+.layer-footer {
+    padding: 12px;
+    background: #f8fafc;
+    text-align: center;
+    font-size: 11px;
+    color: #94a3b8;
+    border-top: 1px solid #e2e8f0;
+}
+
+.open-layers-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2c3e50;
+    transition: transform 0.2s;
+}
+
+.open-layers-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Ensure layer items are fully clickable */
+.layer-item * {
+    pointer-events: none;
+}
+
+.layer-item {
+    pointer-events: auto;
+}
+
+/* Add visual feedback on click */
+.layer-item:active {
+    transform: scale(0.98);
+}
+
+/* Animated Disaster Markers */
+.disaster-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.disaster-marker-container {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.disaster-pulse {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    animation: pulse 2s ease-out infinite;
+    pointer-events: none;
+}
+
+.disaster-pulse-critical {
+    background: rgba(220, 38, 38, 0.4);
+}
+
+.disaster-pulse-high {
+    background: rgba(249, 115, 22, 0.4);
+}
+
+.disaster-pulse-medium {
+    background: rgba(234, 179, 8, 0.4);
+}
+
+.disaster-pulse-low {
+    background: rgba(34, 197, 94, 0.4);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.disaster-icon {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.disaster-icon:hover {
+    transform: scale(1.1);
+}
+
+.disaster-icon-critical {
+    background: #dc2626;
+}
+
+.disaster-icon-high {
+    background: #f97316;
+}
+
+.disaster-icon-medium {
+    background: #eab308;
+}
+
+.disaster-icon-low {
+    background: #22c55e;
+}
+
+.disaster-icon svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.disaster-severity-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.disaster-icon:hover .disaster-severity-label {
+    opacity: 1;
+}
