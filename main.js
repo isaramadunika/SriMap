@@ -340,7 +340,7 @@ async function loadLayers() {
     }
 }
 
-// Simplified, faster layer control
+// Simplified, faster layer control with card design
 function initQuickControl(layerControls) {
     const layerControl = document.getElementById('layer-control');
     const closeBtn = document.getElementById('close-layers');
@@ -352,34 +352,34 @@ function initQuickControl(layerControls) {
     // Clear existing items
     layerList.innerHTML = '';
 
-    // Quick layer items
+    // Layer configuration with icons and descriptions
     const layerNames = {
-        trains: { name: 'Train Routes', color: '#ef4444' },
-        highways: { name: 'Highways', color: '#e74c3c' },
-        roads: { name: 'Roads', color: '#8B4513' },
-        rivers: { name: 'Rivers', color: '#3498db' },
-        restaurants: { name: 'Restaurants', color: '#10b981' },
-        districts: { name: 'Districts', color: '#a855f7' },
-        disasters: { name: 'Disasters', color: '#dc2626' }
+        trains: { name: 'Train Routes', desc: 'Railways and Stations', color: '#ef4444', icon: '🚂' },
+        highways: { name: 'Highways', desc: 'Roads and highways', color: '#e74c3c', icon: '🛣️' },
+        roads: { name: 'Roads', desc: 'Digitized road network', color: '#8B4513', icon: '🛣️' },
+        rivers: { name: 'Rivers', desc: 'Rivers and waterways', color: '#3498db', icon: '🌊' },
+        restaurants: { name: 'Restaurants', desc: 'Dining locations', color: '#10b981', icon: '🍴' },
+        districts: { name: 'Districts', desc: 'District boundaries', color: '#a855f7', icon: '🗺️' },
+        disasters: { name: 'Disasters', desc: 'Disaster incidents', color: '#dc2626', icon: '⚠️' }
     };
 
     Object.keys(layerControls).forEach(key => {
         const layer = layerControls[key];
-        const { name, color } = layerNames[key];
+        const { name, desc, color, icon } = layerNames[key];
         
         const div = document.createElement('div');
         div.className = 'layer-item active';
-        div.style.padding = '10px';
-        div.style.borderBottom = '1px solid #ddd';
-        div.style.cursor = 'pointer';
         div.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 16px; height: 16px; background-color: ${color}; border-radius: 3px;"></div>
-                    <span style="font-weight: 500;">${name}</span>
+            <div class="layer-info">
+                <div class="layer-icon" style="background-color: ${color};">
+                    ${icon}
                 </div>
-                <span class="layer-status" style="font-size: 18px;">👁️</span>
+                <div class="layer-text">
+                    <h4>${name}</h4>
+                    <p>${desc}</p>
+                </div>
             </div>
+            <span class="layer-status">👁️</span>
         `;
 
         div.addEventListener('click', () => {
