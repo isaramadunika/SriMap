@@ -2,9 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "env": {
-    "VITE_APP_TITLE": "@SriMap"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
