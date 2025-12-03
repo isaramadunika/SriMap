@@ -27,67 +27,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Function to load and display GeoJSON
-// Function to fetch highways from OpenStreetMap Overpass API
+// Function to fetch highways from local GeoJSON file (FAST - not API)
 async function fetchHighwaysFromOSM() {
     try {
-        const overpassUrl = 'https://overpass-api.de/api/interpreter';
-        const query = `
-            [bbox:5.9,79.7,9.8,81.9];
-            (
-                way["highway"="motorway"];
-                way["highway"="trunk"];
-                way["highway"="primary"];
-                way["highway"="secondary"];
-                way["highway"="tertiary"];
-                way["highway"="residential"];
-                way["highway"="service"];
-                way["highway"="unclassified"];
-                way["highway"="living_street"];
-                way["highway"="pedestrian"];
-            );
-            out geom;
-        `;
-        
-        const response = await fetch(overpassUrl, {
-            method: 'POST',
-            body: query
-        });
-        
-        if (!response.ok) throw new Error('Overpass API error');
+        const response = await fetch('/data/HW_all.geojson');
+        if (!response.ok) throw new Error('Failed to load highway data');
         const data = await response.json();
-        
-        // Convert OSM data to GeoJSON
-        const features = [];
-        
-        data.elements.forEach(element => {
-            if (element.type === 'way' && element.geometry) {
-                // Highway roads
-                const coords = element.geometry.map(node => [node.lon, node.lat]);
-                if (coords.length > 1) {
-                    const highwayType = element.tags?.highway || 'road';
-                    features.push({
-                        type: 'Feature',
-                        properties: {
-                            name: element.tags?.name || `${highwayType} Road`,
-                            type: 'Highway',
-                            highway_type: highwayType,
-                            ref: element.tags?.ref || ''
-                        },
-                        geometry: {
-                            type: 'LineString',
-                            coordinates: coords
-                        }
-                    });
-                }
-            }
-        });
-        
-        return {
-            type: 'FeatureCollection',
-            features: features
-        };
+        return data;
     } catch (error) {
-        console.warn('Error fetching highways from Overpass API:', error);
+        console.warn('Error loading highway data:', error);
         return {
             type: 'FeatureCollection',
             features: []
