@@ -312,7 +312,7 @@ async function loadLayers() {
             }
         });
 
-        // Add layers to map initially
+        // Add layers to map immediately - FAST LOAD
         trainLayer.addTo(map);
         highwayLayer.addTo(map);
         roadsLayer.addTo(map);
@@ -321,123 +321,91 @@ async function loadLayers() {
         districtsLayer.addTo(map);
         disastersLayer.addTo(map);
 
-        // Define layers for custom control
-        const layers = [
-            {
-                id: 'trains',
-                name: 'Train Routes',
-                description: 'Railways and Stations',
-                layer: trainLayer,
-                iconColor: '#ef4444',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'
-            },
-            {
-                id: 'highways',
-                name: 'Highways',
-                description: 'Roads and highways',
-                layer: highwayLayer,
-                iconColor: '#e74c3c',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6-6 6 6M6 9h12M6 9v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/></svg>'
-            },
-            {
-                id: 'roads',
-                name: 'Roads',
-                description: 'Digitized road network',
-                layer: roadsLayer,
-                iconColor: '#8B4513',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>'
-            },
-            {
-                id: 'rivers',
-                name: 'Rivers',
-                description: 'Rivers and waterways',
-                layer: riversLayer,
-                iconColor: '#3498db',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c-1 0-2 1-2 2v2c0 1 1 2 2 2s2-1 2-2V4c0-1-1-2-2-2zM12 10c-1 0-2 1-2 2v2c0 1 1 2 2 2s2-1 2-2v-2c0-1-1-2-2-2zM12 18c-1 0-2 1-2 2v2c0 1 1 2 2 2s2-1 2-2v-2c0-1-1-2-2-2z"/></svg>'
-            },
-            {
-                id: 'restaurants',
-                name: 'Restaurants',
-                description: 'Dining locations',
-                layer: restaurantLayer,
-                iconColor: '#10b981',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>'
-            },
-            {
-                id: 'districts',
-                name: 'Districts',
-                description: 'District boundaries',
-                layer: districtsLayer,
-                iconColor: '#a855f7',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
-            },
-            {
-                id: 'disasters',
-                name: 'Disasters',
-                description: 'Disaster incidents',
-                layer: disastersLayer,
-                iconColor: '#dc2626',
-                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-            }
-        ];
+        // Create layer control data structure (simpler, faster)
+        const layerControls = {
+            trains: trainLayer,
+            highways: highwayLayer,
+            roads: roadsLayer,
+            rivers: riversLayer,
+            restaurants: restaurantLayer,
+            districts: districtsLayer,
+            disasters: disastersLayer
+        };
 
-        initCustomControl(layers);
+        // Initialize simplified layer control
+        initQuickControl(layerControls);
 
     } catch (error) {
         console.error('Error loading layers:', error);
     }
 }
 
-function initCustomControl(layers) {
-    const layerList = document.querySelector('.layer-list');
+// Simplified, faster layer control
+function initQuickControl(layerControls) {
     const layerControl = document.getElementById('layer-control');
     const closeBtn = document.getElementById('close-layers');
     const openBtn = document.getElementById('open-layers');
+    const layerList = document.querySelector('.layer-list');
 
-    // Generate layer items
-    layers.forEach(item => {
+    if (!layerList) return; // Exit if HTML structure doesn't exist
+
+    // Clear existing items
+    layerList.innerHTML = '';
+
+    // Quick layer items
+    const layerNames = {
+        trains: { name: 'Train Routes', color: '#ef4444' },
+        highways: { name: 'Highways', color: '#e74c3c' },
+        roads: { name: 'Roads', color: '#8B4513' },
+        rivers: { name: 'Rivers', color: '#3498db' },
+        restaurants: { name: 'Restaurants', color: '#10b981' },
+        districts: { name: 'Districts', color: '#a855f7' },
+        disasters: { name: 'Disasters', color: '#dc2626' }
+    };
+
+    Object.keys(layerControls).forEach(key => {
+        const layer = layerControls[key];
+        const { name, color } = layerNames[key];
+        
         const div = document.createElement('div');
         div.className = 'layer-item active';
+        div.style.padding = '10px';
+        div.style.borderBottom = '1px solid #ddd';
+        div.style.cursor = 'pointer';
         div.innerHTML = `
-            <div class="layer-info">
-                <div class="layer-icon" style="background-color: ${item.iconColor}">
-                    ${item.icon}
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 16px; height: 16px; background-color: ${color}; border-radius: 3px;"></div>
+                    <span style="font-weight: 500;">${name}</span>
                 </div>
-                <div class="layer-text">
-                    <h4>${item.name}</h4>
-                    <p>${item.description}</p>
-                </div>
-            </div>
-            <div class="layer-status">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span class="layer-status" style="font-size: 18px;">👁️</span>
             </div>
         `;
 
         div.addEventListener('click', () => {
-            const isActive = map.hasLayer(item.layer);
-
+            const isActive = map.hasLayer(layer);
             if (isActive) {
-                map.removeLayer(item.layer);
+                map.removeLayer(layer);
                 div.classList.remove('active');
-                div.querySelector('.layer-status').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+                div.querySelector('.layer-status').textContent = '❌';
             } else {
-                map.addLayer(item.layer);
+                map.addLayer(layer);
                 div.classList.add('active');
-                div.querySelector('.layer-status').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+                div.querySelector('.layer-status').textContent = '👁️';
             }
         });
 
         layerList.appendChild(div);
     });
 
-    // Toggle control visibility
-    closeBtn.addEventListener('click', () => {
-        layerControl.classList.add('hidden');
-        openBtn.style.display = 'flex';
+    // Layer control toggle buttons
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+        layerControl.style.display = 'none';
+        if (openBtn) openBtn.style.display = 'flex';
     });
 
-    openBtn.addEventListener('click', () => {
-        layerControl.classList.remove('hidden');
+    if (openBtn) openBtn.addEventListener('click', () => {
+        layerControl.style.display = 'block';
         openBtn.style.display = 'none';
     });
 }
