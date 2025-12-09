@@ -9,6 +9,9 @@ const MIN_REQUEST_INTERVAL = 2000; // Minimum 2 seconds between requests
 let retryCount = 0;
 const MAX_RETRIES = 2;
 
+// User location tracking
+let userLocation = null;
+
 let geoJsonData = {
     disasters: [],
     restaurants: [],
@@ -38,6 +41,20 @@ function setupChatbotUI() {
     if (!chatbotPanel || !openBtn || !closeBtn || !sendBtn || !input) {
         console.warn('Chatbot UI elements not found');
         return;
+    }
+
+    // Get user location
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            userLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            console.log('[Chatbot] User location:', userLocation);
+        }, (error) => {
+            console.warn('[Chatbot] Could not get user location:', error);
+        });
     }
 
     // Toggle chatbot visibility
@@ -247,8 +264,82 @@ Please answer the user's question in a natural, conversational way. Be specific 
     }
 }
 
+// Calculate distance between two coordinates in kilometers
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// Get centroid of a geometry
+function getGeometryCentroid(geometry) {
+    if (!geometry) return null;
+    
+    if (geometry.type === 'Point') {
+        return { lat: geometry.coordinates[1], lon: geometry.coordinates[0] };
+    } else if (geometry.type === 'LineString' || geometry.type === 'Polygon') {
+        // Get first coordinate as approximation
+        let coords = geometry.coordinates;
+        if (geometry.type === 'Polygon' && Array.isArray(coords[0])) {
+            coords = coords[0];
+        }
+        if (Array.isArray(coords[0])) {
+            return { lat: coords[0][1], lon: coords[0][0] };
+        }
+        return { lat: coords[1], lon: coords[0] };
+    }
+    return null;
+}
+
+// Find nearby disasters within radius (in km)
+function getNearbyDisasters(radiusKm = 50) {
+    if (!userLocation) return [];
+    
+    const nearby = [];
+    geoJsonData.disasters.forEach(feature => {
+        const centroid = getGeometryCentroid(feature.geometry);
+        if (centroid) {
+            const distance = calculateDistance(userLocation.lat, userLocation.lon, centroid.lat, centroid.lon);
+            if (distance <= radiusKm) {
+                nearby.push({
+                    ...feature,
+                    distance: distance,
+                    type: feature.properties?.natural || feature.properties?.water || 'Unknown'
+                });
+            }
+        }
+    });
+    
+    // Sort by distance
+    return nearby.sort((a, b) => a.distance - b.distance);
+}
+
 function buildContextForAI() {
     let context = '';
+
+    // Add user location info
+    if (userLocation) {
+        context += `USER LOCATION: Latitude ${userLocation.lat.toFixed(4)}, Longitude ${userLocation.lon.toFixed(4)}\n`;
+        context += `Location accuracy: ±${Math.round(userLocation.accuracy)} meters\n\n`;
+    } else {
+        context += 'USER LOCATION: Not available\n\n';
+    }
+
+    // Nearby disasters (within 50 km)
+    const nearbyDisasters = getNearbyDisasters(50);
+    if (nearbyDisasters.length > 0) {
+        context += 'NEARBY DISASTERS (within 50 km):\n';
+        nearbyDisasters.slice(0, 5).forEach(disaster => {
+            const location = disaster.properties?.is_in || 'Unknown location';
+            context += `- ${disaster.type} at ${location} (${disaster.distance.toFixed(1)} km away)\n`;
+        });
+        context += '\n';
+    }
 
     // Disasters summary
     if (geoJsonData.disasters.length > 0) {
@@ -260,7 +351,7 @@ function buildContextForAI() {
             disastersByType[type].push(location);
         });
 
-        context += '\nDISASTERS BY TYPE:\n';
+        context += 'DISASTERS BY TYPE (all):\n';
         Object.entries(disastersByType).forEach(([type, locations]) => {
             context += `- ${type}: Found in ${locations.slice(0, 3).join(', ')}${locations.length > 3 ? ` and ${locations.length - 3} more` : ''}\n`;
         });
