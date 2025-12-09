@@ -122,156 +122,7 @@ class GeoJSONLoader {
 
 const geoLoader = new GeoJSONLoader();
 
-// Smart Chatbot for local responses without Gemini API
-class SmartChatbot {
-    constructor(geoLoader) {
-        this.geoLoader = geoLoader;
-    }
-
-    async generateAnswer(question, userLat, userLon) {
-        const lowerQ = question.toLowerCase();
-        
-        if (this.isDisasterQuestion(lowerQ)) {
-            return await this.handleDisasterQuestion(question, userLat, userLon);
-        } else if (this.isRailwayQuestion(lowerQ)) {
-            return await this.handleRailwayQuestion(question, userLat, userLon);
-        } else if (this.isRestaurantQuestion(lowerQ)) {
-            return await this.handleRestaurantQuestion(question, userLat, userLon);
-        } else if (this.isHighwayQuestion(lowerQ)) {
-            return await this.handleHighwayQuestion(question, userLat, userLon);
-        } else if (this.isRiverQuestion(lowerQ)) {
-            return await this.handleRiverQuestion(question, userLat, userLon);
-        } else {
-            return this.handleGeneralQuestion(question);
-        }
-    }
-
-    isDisasterQuestion(q) { return ['disaster', 'earthquake', 'flood', 'landslide', 'danger', 'near', 'nearby'].some(k => q.includes(k)); }
-    isRailwayQuestion(q) { return ['train', 'railway', 'station', 'rail', 'transport'].some(k => q.includes(k)); }
-    isRestaurantQuestion(q) { return ['restaurant', 'food', 'eat', 'dining', 'cafe', 'where'].some(k => q.includes(k)); }
-    isHighwayQuestion(q) { return ['highway', 'road', 'route', 'drive', 'path'].some(k => q.includes(k)); }
-    isRiverQuestion(q) { return ['river', 'water', 'stream', 'oya'].some(k => q.includes(k)); }
-
-    async handleDisasterQuestion(question, userLat, userLon) {
-        try {
-            const nearby = await this.geoLoader.findNearby(userLat, userLon, 50, 'disasters');
-            if (nearby.length === 0) {
-                return `✅ Good news! No major disasters recorded within 50 km of your location.`;
-            }
-            let response = `🚨 **Disaster Information Near You**\n\nFound ${nearby.length} disaster areas:\n\n`;
-            const byType = {};
-            nearby.forEach(d => {
-                const type = d.properties?.natural || 'Unknown';
-                if (!byType[type]) byType[type] = [];
-                byType[type].push(d);
-            });
-            Object.entries(byType).forEach(([type, disasters]) => {
-                response += `**${type} (${disasters.length}):**\n`;
-                disasters.slice(0, 3).forEach(d => {
-                    const location = d.properties?.is_in || 'Unknown';
-                    response += `  • ${location} (${d.distance?.toFixed(1) || '?'} km away)\n`;
-                });
-                if (disasters.length > 3) response += `  • ...and ${disasters.length - 3} more\n`;
-            });
-            return response;
-        } catch (e) { return `I couldn't fetch disaster info right now.`; }
-    }
-
-    async handleRailwayQuestion(question, userLat, userLon) {
-        try {
-            const railways = await this.geoLoader.load('ralway_All.geojson');
-            if (!railways) return `No railway data available.`;
-            const stations = railways.features.filter(f => f.properties?.type === 'Station');
-            let response = `🚂 **Railway Information**\n\nTotal stations: ${stations.length}\n`;
-            const nearby = [];
-            stations.forEach(s => {
-                const centroid = this.geoLoader.getGeometryCentroid(s.geometry);
-                if (centroid) {
-                    const dist = this.geoLoader.calculateDistance(userLat, userLon, centroid.lat, centroid.lon);
-                    if (dist < 50) nearby.push({...s, distance: dist});
-                }
-            });
-            if (nearby.length > 0) {
-                response += `\nNearby stations (${nearby.length}):\n`;
-                nearby.sort((a,b) => a.distance - b.distance).slice(0, 5).forEach(s => {
-                    response += `  • ${s.properties?.name || 'Unnamed'} (${s.distance?.toFixed(1) || '?'} km)\n`;
-                });
-            } else {
-                response += `\nNo stations within 50 km.`;
-            }
-            return response;
-        } catch (e) { return `I couldn't fetch railway info right now.`; }
-    }
-
-    async handleRestaurantQuestion(question, userLat, userLon) {
-        try {
-            const restaurants = await this.geoLoader.load('restaurants_all.geojson');
-            if (!restaurants) return `No restaurant data available.`;
-            const nearby = [];
-            restaurants.features.forEach(r => {
-                if (r.geometry?.coordinates) {
-                    const [lon, lat] = r.geometry.coordinates;
-                    const dist = this.geoLoader.calculateDistance(userLat, userLon, lat, lon);
-                    if (dist < 50) nearby.push({...r, distance: dist});
-                }
-            });
-            if (nearby.length === 0) return `📍 No restaurants within 50 km of your location.`;
-            nearby.sort((a,b) => a.distance - b.distance);
-            let response = `🍽️ **Restaurants Near You**\n\nFound ${nearby.length} restaurants:\n\n`;
-            nearby.slice(0, 10).forEach((r, i) => {
-                response += `${i+1}. ${r.properties?.name || 'Restaurant'} (${r.distance?.toFixed(1) || '?'} km)\n`;
-            });
-            if (nearby.length > 10) response += `\n...and ${nearby.length - 10} more.`;
-            return response;
-        } catch (e) { return `I couldn't fetch restaurant info right now.`; }
-    }
-
-    async handleHighwayQuestion(question, userLat, userLon) {
-        try {
-            const highways = await this.geoLoader.load('HW_all.geojson');
-            if (!highways) return `No highway data available.`;
-            const types = {};
-            highways.features.forEach(h => {
-                const type = h.properties?.highway || 'Unknown';
-                types[type] = (types[type] || 0) + 1;
-            });
-            let response = `🛣️ **Road Network**\n\nTotal roads: ${highways.features.length}\n\nRoad types:\n`;
-            Object.entries(types).sort((a,b) => b[1] - a[1]).slice(0, 6).forEach(([type, count]) => {
-                response += `  • ${type}: ${count}\n`;
-            });
-            return response;
-        } catch (e) { return `I couldn't fetch highway info right now.`; }
-    }
-
-    async handleRiverQuestion(question, userLat, userLon) {
-        try {
-            const rivers = await this.geoLoader.load('Oya_all.geojson');
-            if (!rivers) return `No river data available.`;
-            const named = rivers.features.filter(r => r.properties?.name);
-            let response = `💧 **Rivers & Waterways**\n\nTotal waterways: ${rivers.features.length}\n\n`;
-            if (named.length > 0) {
-                response += `Major rivers:\n`;
-                named.slice(0, 8).forEach(r => {
-                    response += `  • ${r.properties?.name}\n`;
-                });
-            }
-            return response;
-        } catch (e) { return `I couldn't fetch river info right now.`; }
-    }
-
-    handleGeneralQuestion(question) {
-        let response = `I can help with:\n\n`;
-        response += `🚨 **Disasters** - Near you\n`;
-        response += `🚂 **Railways** - Stations & routes\n`;
-        response += `🍽️ **Restaurants** - Dining options\n`;
-        response += `🛣️ **Highways** - Road networks\n`;
-        response += `💧 **Rivers** - Waterways\n\n`;
-        response += `Try: "What nearby disasters?" or "Show restaurants near me"`;
-        return response;
-    }
-}
-
-const smartChatbot = new SmartChatbot(geoLoader);
+// Initialize chatbot
 export function initChatbot(disasterData, restaurantData, trainData, highwayData, riverData) {
     geoJsonData.disasters = disasterData.features || [];
     geoJsonData.restaurants = restaurantData.features || [];
@@ -426,37 +277,376 @@ async function getAIResponseWithRetry(userMessage) {
     throw lastError;
 }
 
-async function getAIResponse(userMessage) {
-    // Use Smart Chatbot for local responses (no API needed!)
+/**
+ * Local answer function - provides answers without Gemini API
+ * Uses GeoJSON data for dangerous areas, railways, restaurants, highways, and rivers
+ */
+async function getLocalAnswer(userMessage) {
+    const message = userMessage.toLowerCase();
+    
+    // Keywords for different topics
+    const dangerousKeywords = ['danger', 'risk', 'disaster', 'earthquake', 'flood', 'landslide', 'tsunami', 'hazard', 'unsafe', 'careful'];
+    const railwayKeywords = ['train', 'railway', 'station', 'transport', 'rail', 'locomotive', 'track'];
+    const restaurantKeywords = ['restaurant', 'food', 'eat', 'dining', 'cafe', 'hotel', 'meal', 'cuisine', 'where eat'];
+    const highwayKeywords = ['highway', 'road', 'drive', 'route', 'path', 'traffic', 'way', 'street'];
+    const riverKeywords = ['river', 'water', 'stream', 'waterway', 'flow', 'oya', 'lake'];
+    
+    // Check which category the question belongs to
+    let answer = '';
+    let dataLoaded = false;
+
+    // Check for dangerous/disaster related questions
+    if (dangerousKeywords.some(keyword => message.includes(keyword))) {
+        answer = await getDisasterAnswer(message);
+        dataLoaded = true;
+    }
+    
+    // Check for railway related questions
+    if (!dataLoaded && railwayKeywords.some(keyword => message.includes(keyword))) {
+        answer = await getRailwayAnswer(message);
+        dataLoaded = true;
+    }
+    
+    // Check for restaurant related questions
+    if (!dataLoaded && restaurantKeywords.some(keyword => message.includes(keyword))) {
+        answer = await getRestaurantAnswer(message);
+        dataLoaded = true;
+    }
+    
+    // Check for highway related questions
+    if (!dataLoaded && highwayKeywords.some(keyword => message.includes(keyword))) {
+        answer = await getHighwayAnswer(message);
+        dataLoaded = true;
+    }
+    
+    // Check for river/water related questions
+    if (!dataLoaded && riverKeywords.some(keyword => message.includes(keyword))) {
+        answer = await getRiverAnswer(message);
+        dataLoaded = true;
+    }
+    
+    // If we found an answer, return it
+    if (dataLoaded && answer) {
+        return answer;
+    }
+    
+    // If no match found, return null so it uses Gemini API as fallback
+    return null;
+}
+
+/**
+ * Get answers about dangerous areas and disasters
+ */
+async function getDisasterAnswer(message) {
     try {
-        console.log('[Chatbot] Using SmartChatbot for response...');
+        const disasters = await geoLoader.load('Disaster_all.geojson');
         
-        if (!userLocation) {
-            return `I need your location to provide accurate information. Please enable location services.`;
+        if (!disasters || !disasters.features.length) {
+            return '❌ No disaster data available currently.';
         }
 
-        const response = await smartChatbot.generateAnswer(
-            userMessage, 
-            userLocation.lat, 
-            userLocation.lon
-        );
-        
-        console.log('[Chatbot] SmartChatbot response generated');
-        return response;
+        let answer = '';
+
+        // Check if asking for nearby dangers
+        if (message.includes('nearby') || message.includes('near me') || message.includes('close')) {
+            if (userLocation) {
+                const nearbyDisasters = await geoLoader.findNearby(
+                    userLocation.lat,
+                    userLocation.lon,
+                    50,
+                    'disasters'
+                );
+                
+                if (nearbyDisasters.length > 0) {
+                    answer = '⚠️ **NEARBY DANGEROUS AREAS (within 50 km):**\n\n';
+                    nearbyDisasters.slice(0, 5).forEach(disaster => {
+                        const type = disaster.properties?.natural || disaster.properties?.water || 'Hazard';
+                        const location = disaster.properties?.is_in || 'Unknown area';
+                        const distance = disaster.distance.toFixed(1);
+                        answer += `🔴 **${type}** at ${location} (${distance} km away)\n`;
+                    });
+                } else {
+                    answer = '✅ No dangerous areas detected nearby (within 50 km). You are safe!';
+                }
+            } else {
+                answer = '📍 Please enable location access to check for nearby dangers.';
+            }
+        }
+        // Check for specific location disasters
+        else if (message.includes('colombo') || message.includes('kandy') || message.includes('galle')) {
+            const location = message.match(/colombo|kandy|galle|matara|jaffna|trincomalee/)?.[0] || 'your area';
+            const locationDisasters = await geoLoader.findDisastersByLocation(location);
+            
+            if (locationDisasters.length > 0) {
+                answer = `⚠️ **DANGEROUS AREAS IN ${location.toUpperCase()}:**\n\n`;
+                locationDisasters.slice(0, 5).forEach(disaster => {
+                    const type = disaster.properties?.natural || 'Hazard';
+                    answer += `🔴 ${type}\n`;
+                });
+            } else {
+                answer = `✅ No major disaster risks recorded in ${location}. It appears relatively safe.`;
+            }
+        }
+        // General disaster info
+        else {
+            const disasterTypes = {};
+            disasters.features.slice(0, 10).forEach(feature => {
+                const type = feature.properties?.natural || feature.properties?.water || 'Unknown';
+                disasterTypes[type] = (disasterTypes[type] || 0) + 1;
+            });
+
+            answer = '📊 **DISASTER & HAZARD OVERVIEW:**\n\n';
+            Object.entries(disasterTypes).slice(0, 5).forEach(([type, count]) => {
+                answer += `⚠️ ${type}: ${count} areas recorded\n`;
+            });
+            answer += '\n💡 *Use "nearby dangers" to check your area*';
+        }
+
+        return answer;
     } catch (error) {
-        console.error('[Chatbot] SmartChatbot error:', error);
-        return `I couldn't process that request. Please try again.`;
+        console.error('[Chatbot] Error in getDisasterAnswer:', error);
+        return null;
     }
 }
 
-// Legacy: Call Gemini API if needed (commented out - not used by default)
-/*
-async function getAIResponseWithGemini(userMessage) {
+/**
+ * Get answers about railways and trains
+ */
+async function getRailwayAnswer(message) {
+    try {
+        const trains = await geoLoader.load('ralway_All.geojson');
+        
+        if (!trains || !trains.features.length) {
+            return '❌ No railway data available currently.';
+        }
+
+        let answer = '';
+
+        // Check for nearby stations
+        if (message.includes('nearby') || message.includes('near me') || message.includes('close')) {
+            if (userLocation) {
+                const nearbyTrains = await geoLoader.findNearby(
+                    userLocation.lat,
+                    userLocation.lon,
+                    30,
+                    'ralway_All'
+                );
+                
+                if (nearbyTrains.length > 0) {
+                    answer = '🚂 **NEARBY RAILWAY STATIONS (within 30 km):**\n\n';
+                    nearbyTrains.slice(0, 5).forEach(train => {
+                        const name = train.properties?.name || 'Railway';
+                        const distance = train.distance.toFixed(1);
+                        answer += `🚉 ${name} (${distance} km away)\n`;
+                    });
+                } else {
+                    answer = '❌ No railway stations found nearby (within 30 km).';
+                }
+            } else {
+                answer = '📍 Please enable location access to find nearby stations.';
+            }
+        }
+        // General railway info
+        else {
+            answer = `🚂 **RAILWAY NETWORK INFO:**\n\n`;
+            answer += `📊 Total railway features: ${trains.features.length}\n`;
+            answer += `✅ Railway network covers Sri Lanka\n`;
+            answer += `💡 Use "nearby stations" to find closest train station`;
+        }
+
+        return answer;
+    } catch (error) {
+        console.error('[Chatbot] Error in getRailwayAnswer:', error);
+        return null;
+    }
+}
+
+/**
+ * Get answers about restaurants
+ */
+async function getRestaurantAnswer(message) {
+    try {
+        const restaurants = await geoLoader.load('restaurants_all.geojson');
+        
+        if (!restaurants || !restaurants.features.length) {
+            return '❌ No restaurant data available currently.';
+        }
+
+        let answer = '';
+
+        // Check for nearby restaurants
+        if (message.includes('nearby') || message.includes('near me') || message.includes('close')) {
+            if (userLocation) {
+                const nearbyRestaurants = await geoLoader.findNearby(
+                    userLocation.lat,
+                    userLocation.lon,
+                    5,
+                    'restaurants_all'
+                );
+                
+                if (nearbyRestaurants.length > 0) {
+                    answer = '🍽️ **NEARBY RESTAURANTS (within 5 km):**\n\n';
+                    nearbyRestaurants.slice(0, 5).forEach(rest => {
+                        const name = rest.properties?.name || 'Restaurant';
+                        const type = rest.properties?.cuisine || rest.properties?.amenity || 'Dining';
+                        const distance = rest.distance.toFixed(1);
+                        answer += `🍴 ${name} (${type}) - ${distance} km away\n`;
+                    });
+                } else {
+                    answer = '❌ No restaurants found nearby. Try searching in a wider area.';
+                }
+            } else {
+                answer = '📍 Please enable location access to find nearby restaurants.';
+            }
+        }
+        // General restaurant info
+        else {
+            answer = `🍽️ **RESTAURANT GUIDE:**\n\n`;
+            answer += `📊 Total restaurants: ${restaurants.features.length}\n`;
+            answer += `✅ Restaurants available across Sri Lanka\n`;
+            answer += `💡 Use "nearby restaurants" to find places to eat`;
+        }
+
+        return answer;
+    } catch (error) {
+        console.error('[Chatbot] Error in getRestaurantAnswer:', error);
+        return null;
+    }
+}
+
+/**
+ * Get answers about highways and roads
+ */
+async function getHighwayAnswer(message) {
+    try {
+        const highways = await geoLoader.load('HW_all.geojson');
+        
+        if (!highways || !highways.features.length) {
+            return '❌ No highway data available currently.';
+        }
+
+        let answer = '';
+
+        // Check for nearby roads
+        if (message.includes('nearby') || message.includes('near me') || message.includes('route')) {
+            if (userLocation) {
+                const nearbyRoads = await geoLoader.findNearby(
+                    userLocation.lat,
+                    userLocation.lon,
+                    10,
+                    'HW_all'
+                );
+                
+                if (nearbyRoads.length > 0) {
+                    answer = '🛣️ **NEARBY ROADS & HIGHWAYS (within 10 km):**\n\n';
+                    nearbyRoads.slice(0, 5).forEach(road => {
+                        const type = road.properties?.highway || 'Road';
+                        const lanes = road.properties?.lanes || '?';
+                        answer += `🚗 ${type.toUpperCase()} (${lanes} lane(s))\n`;
+                    });
+                } else {
+                    answer = '❌ No highways found nearby.';
+                }
+            } else {
+                answer = '📍 Please enable location access to find nearby roads.';
+            }
+        }
+        // General highway info
+        else {
+            answer = `🛣️ **HIGHWAY & ROAD NETWORK:**\n\n`;
+            answer += `📊 Total road segments: ${highways.features.length}\n`;
+            answer += `✅ Comprehensive road network across Sri Lanka\n`;
+            answer += `💡 Use "nearby roads" to check local routes`;
+        }
+
+        return answer;
+    } catch (error) {
+        console.error('[Chatbot] Error in getHighwayAnswer:', error);
+        return null;
+    }
+}
+
+/**
+ * Get answers about rivers and waterways
+ */
+async function getRiverAnswer(message) {
+    try {
+        const rivers = await geoLoader.load('Oya_all.geojson');
+        
+        if (!rivers || !rivers.features.length) {
+            return '❌ No river data available currently.';
+        }
+
+        let answer = '';
+
+        // Check for nearby rivers
+        if (message.includes('nearby') || message.includes('near me') || message.includes('close')) {
+            if (userLocation) {
+                const nearbyRivers = await geoLoader.findNearby(
+                    userLocation.lat,
+                    userLocation.lon,
+                    20,
+                    'Oya_all'
+                );
+                
+                if (nearbyRivers.length > 0) {
+                    answer = '💧 **NEARBY RIVERS & WATERWAYS (within 20 km):**\n\n';
+                    nearbyRivers.slice(0, 5).forEach(river => {
+                        const name = river.properties?.name || 'Waterway';
+                        const distance = river.distance.toFixed(1);
+                        answer += `🌊 ${name} (${distance} km away)\n`;
+                    });
+                } else {
+                    answer = '❌ No major rivers found nearby.';
+                }
+            } else {
+                answer = '📍 Please enable location access to find nearby rivers.';
+            }
+        }
+        // General river info
+        else {
+            answer = `💧 **RIVER & WATERWAY SYSTEM:**\n\n`;
+            answer += `📊 Total waterways mapped: ${rivers.features.length}\n`;
+            answer += `✅ Major rivers: Mahaweli, Kelani, Ruwanwella, and more\n`;
+            answer += `💡 Use "nearby rivers" to find local waterways`;
+        }
+
+        return answer;
+    } catch (error) {
+        console.error('[Chatbot] Error in getRiverAnswer:', error);
+        return null;
+    }
+}
+
+async function getAIResponse(userMessage) {
+    // Try local answer first (faster, no API cost)
+    console.log('[Chatbot] Trying local answer function...');
+    const localAnswer = await getLocalAnswer(userMessage);
+    
+    if (localAnswer) {
+        console.log('[Chatbot] Local answer found - using it instead of Gemini API');
+        return localAnswer;
+    }
+    
+    console.log('[Chatbot] No local answer found - falling back to Gemini API');
+    
     const context = await buildContextForAI();
     
-    const prompt = `You are a helpful map assistant for Sri Lanka. User asked: "${userMessage}"`;
+    const prompt = `You are a helpful map assistant for Sri Lanka. You have access to data about disasters, restaurants, train routes, highways, and rivers.
+
+
+User question: "${userMessage}"
+
+Map data summary:
+${context}
+
+Please answer the user's question in a natural, conversational way. Be specific about locations when possible. Keep your response short and easy to understand (2-3 sentences max).`;
 
     try {
+        console.log('[Chatbot] Building API request...');
+        console.log('[Chatbot] API URL:', GEMINI_API_URL.substring(0, 50) + '...');
+        console.log('[Chatbot] Context length:', context.length);
+
         const requestBody = {
             contents: [{
                 parts: [{
@@ -465,6 +655,7 @@ async function getAIResponseWithGemini(userMessage) {
             }]
         };
 
+        console.log('[Chatbot] Sending fetch request...');
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
@@ -473,18 +664,47 @@ async function getAIResponseWithGemini(userMessage) {
             body: JSON.stringify(requestBody)
         });
 
+        console.log('[Chatbot] Response received:', response.status, response.statusText);
+
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const responseText = await response.text();
+            console.error('[Chatbot] API Error Response:', responseText);
+            throw new Error(`API Error: ${response.status} - ${response.statusText} - ${responseText.substring(0, 200)}`);
         }
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
+        const responseText = await response.text();
+        console.log('[Chatbot] Response text length:', responseText.length);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('[Chatbot] JSON Parse Error:', parseError);
+            console.error('[Chatbot] Response text:', responseText.substring(0, 500));
+            throw new Error('Failed to parse API response as JSON');
+        }
+
+        console.log('[Chatbot] Parsed response has candidates:', !!data.candidates);
+        
+        if (!data.candidates || !Array.isArray(data.candidates) || data.candidates.length === 0) {
+            console.error('[Chatbot] Invalid candidates:', data.candidates);
+            throw new Error('Invalid API response format: missing or empty candidates');
+        }
+
+        if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+            console.error('[Chatbot] Invalid content:', data.candidates[0].content);
+            throw new Error('Invalid API response format: missing content or parts');
+        }
+
+        const reply = data.candidates[0].content.parts[0].text;
+        console.log('[Chatbot] Got reply:', reply.substring(0, 100) + '...');
+        return reply;
     } catch (error) {
-        console.error('[Chatbot] Gemini API error:', error);
+        console.error('[Chatbot] Full error:', error);
+        console.error('[Chatbot] Error message:', error.message);
         throw error;
     }
 }
-*/
 
 // Calculate distance between two coordinates in kilometers
 function calculateDistance(lat1, lon1, lat2, lon2) {
