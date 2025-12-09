@@ -20,6 +20,108 @@ let geoJsonData = {
     rivers: []
 };
 
+// GeoJSON Loader class for accessing data dynamically
+class GeoJSONLoader {
+    constructor() {
+        this.cache = {};
+        this.dataPath = '/data/';
+    }
+
+    async load(filename) {
+        if (this.cache[filename]) {
+            console.log(`[GeoJSONLoader] Using cached data for ${filename}`);
+            return this.cache[filename];
+        }
+
+        try {
+            console.log(`[GeoJSONLoader] Loading ${filename}...`);
+            const response = await fetch(this.dataPath + filename);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            this.cache[filename] = data;
+            console.log(`[GeoJSONLoader] Loaded ${filename}: ${data.features?.length || 0} features`);
+            
+            return data;
+        } catch (error) {
+            console.error(`[GeoJSONLoader] Error loading ${filename}:`, error);
+            throw error;
+        }
+    }
+
+    async findNearby(lat, lon, radiusKm = 50, type = 'disasters') {
+        const fileMap = {
+            disasters: 'Disaster_all.geojson',
+            restaurants: 'restaurants_all.geojson',
+            trains: 'ralway_All.geojson',
+            highways: 'HW_all.geojson',
+            rivers: 'Oya_all.geojson'
+        };
+
+        const filename = fileMap[type];
+        if (!filename) throw new Error(`Unknown type: ${type}`);
+
+        const data = await this.load(filename);
+        const nearby = [];
+
+        data.features?.forEach(feature => {
+            const centroid = this.getGeometryCentroid(feature.geometry);
+            if (centroid) {
+                const distance = this.calculateDistance(lat, lon, centroid.lat, centroid.lon);
+                if (distance <= radiusKm) {
+                    nearby.push({
+                        name: feature.properties?.name || 'Unnamed',
+                        type: feature.properties?.natural || feature.properties?.water || feature.properties?.type || 'Unknown',
+                        location: feature.properties?.is_in || 'Unknown',
+                        distance_km: parseFloat(distance.toFixed(2)),
+                        properties: feature.properties
+                    });
+                }
+            }
+        });
+
+        return nearby.sort((a, b) => a.distance_km - b.distance_km);
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    getGeometryCentroid(geometry) {
+        if (!geometry) return null;
+        if (geometry.type === 'Point') {
+            return { lat: geometry.coordinates[1], lon: geometry.coordinates[0] };
+        } else if (geometry.type === 'LineString' || geometry.type === 'Polygon') {
+            let coords = geometry.coordinates;
+            if (geometry.type === 'Polygon' && Array.isArray(coords[0])) {
+                coords = coords[0];
+            }
+            if (Array.isArray(coords[0])) {
+                return { lat: coords[0][1], lon: coords[0][0] };
+            }
+            return { lat: coords[1], lon: coords[0] };
+        }
+        return null;
+    }
+
+    clearCache() {
+        this.cache = {};
+        console.log('[GeoJSONLoader] Cache cleared');
+    }
+}
+
+const geoLoader = new GeoJSONLoader();
+
 // Initialize chatbot
 export function initChatbot(disasterData, restaurantData, trainData, highwayData, riverData) {
     geoJsonData.disasters = disasterData.features || [];
@@ -176,7 +278,7 @@ async function getAIResponseWithRetry(userMessage) {
 }
 
 async function getAIResponse(userMessage) {
-    const context = buildContextForAI();
+    const context = await buildContextForAI();
     
     const prompt = `You are a helpful map assistant for Sri Lanka. You have access to data about disasters, restaurants, train routes, highways, and rivers.
 
@@ -307,7 +409,7 @@ function getNearbyDisasters(radiusKm = 50) {
     return nearby.sort((a, b) => a.distance - b.distance);
 }
 
-function buildContextForAI() {
+async function buildContextForAI() {
     let context = '';
 
     // Add user location info
@@ -318,41 +420,98 @@ function buildContextForAI() {
         context += 'USER LOCATION: Not available\n\n';
     }
 
-    // Nearby disasters (within 50 km)
-    const nearbyDisasters = getNearbyDisasters(50);
-    if (nearbyDisasters.length > 0) {
-        context += 'NEARBY DISASTERS (within 50 km):\n';
-        nearbyDisasters.slice(0, 5).forEach(disaster => {
-            const location = disaster.properties?.is_in || 'Unknown location';
-            context += `- ${disaster.type} at ${location} (${disaster.distance.toFixed(1)} km away)\n`;
-        });
-        context += '\n';
-    }
-
-    // Disasters summary
-    if (geoJsonData.disasters.length > 0) {
-        const disastersByType = {};
-        geoJsonData.disasters.forEach(feature => {
-            const type = feature.properties?.natural || feature.properties?.water || 'Unknown';
-            const location = feature.properties?.is_in || 'Unknown location';
-            if (!disastersByType[type]) disastersByType[type] = [];
-            disastersByType[type].push(location);
-        });
-
-        context += 'DISASTERS BY TYPE (all):\n';
-        Object.entries(disastersByType).forEach(([type, locations]) => {
-            context += `- ${type}: Found in ${locations.slice(0, 3).join(', ')}${locations.length > 3 ? ` and ${locations.length - 3} more` : ''}\n`;
-        });
-    }
-
-    // Restaurants summary
-    if (geoJsonData.restaurants.length > 0) {
-        context += `\nRESTAURANTS: Total ${geoJsonData.restaurants.length} restaurants available\n`;
-        geoJsonData.restaurants.slice(0, 5).forEach(feature => {
-            if (feature.properties?.name) {
-                context += `- ${feature.properties.name}\n`;
+    // Nearby disasters (within 50 km) - Using GeoJSONLoader for real-time data
+    try {
+        if (userLocation) {
+            const nearbyDisasters = await geoLoader.findNearby(
+                userLocation.lat,
+                userLocation.lon,
+                50,
+                'disasters'
+            );
+            
+            if (nearbyDisasters.length > 0) {
+                context += 'NEARBY DISASTERS (within 50 km):\n';
+                nearbyDisasters.slice(0, 5).forEach(disaster => {
+                    const location = disaster.properties?.is_in || 'Unknown location';
+                    const type = disaster.properties?.natural || disaster.properties?.water || 'Unknown';
+                    context += `- ${type} at ${location} (${disaster.distance.toFixed(1)} km away)\n`;
+                });
+                context += '\n';
             }
-        });
+        }
+    } catch (error) {
+        console.warn('[Chatbot] Error loading nearby disasters:', error);
+        // Fall back to original method if loader fails
+        const nearbyDisasters = getNearbyDisasters(50);
+        if (nearbyDisasters.length > 0) {
+            context += 'NEARBY DISASTERS (within 50 km):\n';
+            nearbyDisasters.slice(0, 5).forEach(disaster => {
+                const location = disaster.properties?.is_in || 'Unknown location';
+                context += `- ${disaster.type} at ${location} (${disaster.distance.toFixed(1)} km away)\n`;
+            });
+            context += '\n';
+        }
+    }
+
+    // Disasters summary - Using GeoJSONLoader
+    try {
+        const disasters = await geoLoader.load('Disaster_all.geojson');
+        if (disasters && disasters.features.length > 0) {
+            const disastersByType = {};
+            disasters.features.forEach(feature => {
+                const type = feature.properties?.natural || feature.properties?.water || 'Unknown';
+                const location = feature.properties?.is_in || 'Unknown location';
+                if (!disastersByType[type]) disastersByType[type] = [];
+                disastersByType[type].push(location);
+            });
+
+            context += 'DISASTERS BY TYPE (all):\n';
+            Object.entries(disastersByType).forEach(([type, locations]) => {
+                context += `- ${type}: Found in ${locations.slice(0, 3).join(', ')}${locations.length > 3 ? ` and ${locations.length - 3} more` : ''}\n`;
+            });
+        }
+    } catch (error) {
+        console.warn('[Chatbot] Error loading disaster data:', error);
+        // Fall back to static data
+        if (geoJsonData.disasters.length > 0) {
+            const disastersByType = {};
+            geoJsonData.disasters.forEach(feature => {
+                const type = feature.properties?.natural || feature.properties?.water || 'Unknown';
+                const location = feature.properties?.is_in || 'Unknown location';
+                if (!disastersByType[type]) disastersByType[type] = [];
+                disastersByType[type].push(location);
+            });
+
+            context += 'DISASTERS BY TYPE (all):\n';
+            Object.entries(disastersByType).forEach(([type, locations]) => {
+                context += `- ${type}: Found in ${locations.slice(0, 3).join(', ')}${locations.length > 3 ? ` and ${locations.length - 3} more` : ''}\n`;
+            });
+        }
+    }
+
+    // Restaurants summary - Using GeoJSONLoader
+    try {
+        const restaurants = await geoLoader.load('Restaurants_all.geojson');
+        if (restaurants && restaurants.features.length > 0) {
+            context += `\nRESTAURANTS: Total ${restaurants.features.length} restaurants available\n`;
+            restaurants.features.slice(0, 5).forEach(feature => {
+                if (feature.properties?.name) {
+                    context += `- ${feature.properties.name}\n`;
+                }
+            });
+        }
+    } catch (error) {
+        console.warn('[Chatbot] Error loading restaurant data:', error);
+        // Fall back to static data
+        if (geoJsonData.restaurants.length > 0) {
+            context += `\nRESTAURANTS: Total ${geoJsonData.restaurants.length} restaurants available\n`;
+            geoJsonData.restaurants.slice(0, 5).forEach(feature => {
+                if (feature.properties?.name) {
+                    context += `- ${feature.properties.name}\n`;
+                }
+            });
+        }
     }
 
     // Trains summary
