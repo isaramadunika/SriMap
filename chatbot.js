@@ -2,6 +2,13 @@
 const GEMINI_API_KEY = 'AIzaSyDLZhafGRJdlzxIVCxcB_l_SHp43krwO5A';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
+// Rate limiting and debouncing
+let lastRequestTime = 0;
+let isProcessing = false;
+const MIN_REQUEST_INTERVAL = 2000; // Minimum 2 seconds between requests
+let retryCount = 0;
+const MAX_RETRIES = 2;
+
 let geoJsonData = {
     disasters: [],
     restaurants: [],
@@ -59,6 +66,22 @@ async function handleSendMessage() {
     const message = input.value.trim();
 
     if (!message) return;
+    if (isProcessing) {
+        console.warn('[Chatbot] Already processing a message');
+        return;
+    }
+
+    // Check rate limiting
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        console.warn(`[Chatbot] Rate limit: wait ${MIN_REQUEST_INTERVAL - timeSinceLastRequest}ms`);
+        addMessageToChat(`Please wait ${Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000)} seconds before sending another message.`, 'bot');
+        return;
+    }
+
+    isProcessing = true;
+    retryCount = 0;
 
     // Disable input while processing
     input.disabled = true;
@@ -73,9 +96,10 @@ async function handleSendMessage() {
     const typingId = addTypingIndicator();
 
     try {
-        const response = await getAIResponse(message);
+        const response = await getAIResponseWithRetry(message);
         removeTypingIndicator(typingId);
         addMessageToChat(response, 'bot');
+        lastRequestTime = Date.now();
     } catch (error) {
         removeTypingIndicator(typingId);
         console.error('[Chatbot] Error in handleSendMessage:', error);
@@ -92,7 +116,7 @@ async function handleSendMessage() {
         } else if (error.message.includes('403')) {
             errorMessage += 'Access denied - check API permissions.';
         } else if (error.message.includes('429')) {
-            errorMessage += 'Too many requests - please wait a moment.';
+            errorMessage += 'API rate limit exceeded. Please wait 30-60 seconds and try again.';
         } else if (error.message.includes('500') || error.message.includes('502')) {
             errorMessage += 'API server error - please try again later.';
         } else if (error.message.includes('Network') || error.message.includes('fetch')) {
@@ -107,16 +131,50 @@ async function handleSendMessage() {
         addMessageToChat(errorMessage, 'bot');
     } finally {
         // Re-enable input
+        isProcessing = false;
         input.disabled = false;
         sendBtn.disabled = false;
         input.focus();
     }
 }
 
+async function getAIResponseWithRetry(userMessage) {
+    let lastError;
+    
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            console.log(`[Chatbot] Attempt ${attempt + 1} of ${MAX_RETRIES + 1}`);
+            const response = await getAIResponse(userMessage);
+            return response;
+        } catch (error) {
+            lastError = error;
+            console.error(`[Chatbot] Attempt ${attempt + 1} failed:`, error.message);
+            
+            // If it's a rate limit error, wait before retrying
+            if (error.message.includes('429') && attempt < MAX_RETRIES) {
+                const waitTime = Math.min(3000 * Math.pow(2, attempt), 10000); // Exponential backoff
+                console.log(`[Chatbot] Rate limited, waiting ${waitTime}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            } else if (attempt < MAX_RETRIES && !error.message.includes('401') && !error.message.includes('403')) {
+                // Only retry non-auth errors
+                const waitTime = 1000 * (attempt + 1);
+                console.log(`[Chatbot] Retrying in ${waitTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            } else {
+                // Don't retry auth errors or if max retries reached
+                throw lastError;
+            }
+        }
+    }
+    
+    throw lastError;
+}
+
 async function getAIResponse(userMessage) {
     const context = buildContextForAI();
     
     const prompt = `You are a helpful map assistant for Sri Lanka. You have access to data about disasters, restaurants, train routes, highways, and rivers.
+
 
 User question: "${userMessage}"
 
