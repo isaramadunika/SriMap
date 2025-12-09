@@ -585,3 +585,8 @@ main {
 .chatbot-messages::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Hide the open chatbot button - keep chatbot always visible */
+.open-chatbot-btn {
+  display: none !important;
+}

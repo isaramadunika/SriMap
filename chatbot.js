@@ -38,7 +38,7 @@ function setupChatbotUI() {
     const sendBtn = document.getElementById('chatbot-send');
     const input = document.getElementById('chatbot-input');
 
-    if (!chatbotPanel || !openBtn || !closeBtn || !sendBtn || !input) {
+    if (!chatbotPanel || !sendBtn || !input) {
         console.warn('Chatbot UI elements not found');
         return;
     }
@@ -56,18 +56,6 @@ function setupChatbotUI() {
             console.warn('[Chatbot] Could not get user location:', error);
         });
     }
-
-    // Toggle chatbot visibility
-    openBtn.addEventListener('click', () => {
-        chatbotPanel.classList.remove('hidden');
-        openBtn.classList.add('hidden');
-        input.focus();
-    });
-
-    closeBtn.addEventListener('click', () => {
-        chatbotPanel.classList.add('hidden');
-        openBtn.classList.remove('hidden');
-    });
 
     // Send message
     sendBtn.addEventListener('click', handleSendMessage);
