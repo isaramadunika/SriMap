@@ -1,5 +1,6 @@
 import L from 'leaflet';
 import './style.css';
+import { initChatbot } from './chatbot.js';
 
 // Initialize the map
 const map = L.map('map').setView([9.77, 80.03], 12);
@@ -260,6 +261,9 @@ async function loadLayers() {
             
             restaurantLayer.addTo(map);
             disastersLayer.addTo(map);
+
+            // Initialize chatbot with all data
+            initChatbot(disastersData, restaurantData, trainData, highwayData, riversData);
 
             // Add to layer control
             const layerList = document.querySelector('.layer-list');
