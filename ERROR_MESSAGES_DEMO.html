@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Error Messages Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .error-demo {
+            background: white;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .error-demo.cors {
+            border-left-color: #f59e0b;
+        }
+        .error-demo.auth {
+            border-left-color: #8b5cf6;
+        }
+        .error-demo.rate {
+            border-left-color: #ec4899;
+        }
+        .error-demo.network {
+            border-left-color: #06b6d4;
+        }
+        .error-demo.format {
+            border-left-color: #10b981;
+        }
+        .error-type {
+            font-weight: bold;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .error-message {
+            font-size: 16px;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+        h1 {
+            color: #1f2937;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Chatbot Error Messages - Enhanced</h1>
+    
+    <div class="info-box">
+        <p><strong>ℹ️ Note:</strong> These are the new improved error messages shown when the chatbot encounters different problems. The old message "Sorry, I encountered an error. The API is temporarily unavailable." has been replaced with specific, helpful messages.</p>
+    </div>
+
+    <h2>Generic Errors (Old vs New)</h2>
+    <div class="error-demo">
+        <div class="error-type">❌ OLD ERROR MESSAGE</div>
+        <div class="error-message">Sorry, I encountered an error. The API is temporarily unavailable.</div>
+    </div>
+
+    <div class="error-demo" style="border-left-color: #3b82f6;">
+        <div class="error-type">✅ NEW ERROR MESSAGE (Generic)</div>
+        <div class="error-message">Please try again. Check the browser console (F12) for details.</div>
+    </div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Specific Error Types (NEW)</h2>
+
+    <div class="error-demo cors">
+        <div class="error-type">🔒 CORS Error</div>
+        <div class="error-message">API access is blocked - this might be a browser security issue.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> Browser prevents request to Gemini API<br>
+            <strong>Solution:</strong> Use backend proxy or deploy to HTTPS
+        </div>
+    </div>
+
+    <div class="error-demo auth">
+        <div class="error-type">🔐 Authentication Error (401)</div>
+        <div class="error-message">Authentication failed - the API key may be invalid.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> API key is invalid, expired, or missing<br>
+            <strong>Solution:</strong> Check API key in Google Cloud Console
+        </div>
+    </div>
+
+    <div class="error-demo" style="border-left-color: #6366f1;">
+        <div class="error-type">🚫 Permission Error (403)</div>
+        <div class="error-message">Access denied - check API permissions.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> API key lacks required permissions<br>
+            <strong>Solution:</strong> Enable Generative Language API in GCP
+        </div>
+    </div>
+
+    <div class="error-demo rate">
+        <div class="error-type">⏱️ Rate Limit Error (429)</div>
+        <div class="error-message">Too many requests - please wait a moment.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> Exceeded API quota<br>
+            <strong>Solution:</strong> Wait and try again, or upgrade plan
+        </div>
+    </div>
+
+    <div class="error-demo" style="border-left-color: #dc2626;">
+        <div class="error-type">💥 Server Error (500/502)</div>
+        <div class="error-message">API server error - please try again later.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> Gemini API server is down<br>
+            <strong>Solution:</strong> Wait for service to recover
+        </div>
+    </div>
+
+    <div class="error-demo network">
+        <div class="error-type">🌐 Network Error</div>
+        <div class="error-message">Network error - check your connection.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> Internet connection lost or unstable<br>
+            <strong>Solution:</strong> Check your network connection
+        </div>
+    </div>
+
+    <div class="error-demo format">
+        <div class="error-type">📦 Response Format Error</div>
+        <div class="error-message">Invalid API response - data format error.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> API returned invalid JSON<br>
+            <strong>Solution:</strong> Check API response format (F12 Console)
+        </div>
+    </div>
+
+    <div class="error-demo" style="border-left-color: #f97316;">
+        <div class="error-type">🔀 Structure Error</div>
+        <div class="error-message">API response structure is unexpected.</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            <strong>When:</strong> API response missing required fields<br>
+            <strong>Solution:</strong> Check for API changes (F12 Console)
+        </div>
+    </div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>How to Debug</h2>
+    <div class="info-box">
+        <p><strong>1. Open Browser Console:</strong> Press <code>F12</code> and click "Console" tab</p>
+        <p><strong>2. Look for [Chatbot] messages:</strong> These show each step of the API call</p>
+        <p><strong>3. Read the error details:</strong> The console will show the specific problem</p>
+        <p><strong>4. Match to solutions above:</strong> Use the error type to find the fix</p>
+    </div>
+
+    <h2>Example Console Output</h2>
+    <div style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; font-family: 'Monaco', monospace; font-size: 12px; overflow-x: auto;">
+        <div>[Chatbot] Building API request...</div>
+        <div>[Chatbot] API URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent...</div>
+        <div>[Chatbot] Context length: 1250</div>
+        <div>[Chatbot] Sending fetch request...</div>
+        <div style="color: #f48771;">[Chatbot] Error in handleSendMessage: Error: API Error: 401 - Unauthorized</div>
+        <div style="color: #f48771;">→ User sees: <strong>"Authentication failed - the API key may be invalid."</strong></div>
+    </div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Summary of Changes</h2>
+    <ul style="line-height: 1.8; font-size: 15px;">
+        <li>✅ Replaced generic error message with <strong>specific, actionable messages</strong></li>
+        <li>✅ Added <strong>detailed console logging</strong> with [Chatbot] prefix for every step</li>
+        <li>✅ Implemented <strong>error classification</strong> for different failure types</li>
+        <li>✅ Added <strong>user-friendly guidance</strong> for each error type</li>
+        <li>✅ Response structure <strong>validated at multiple levels</strong></li>
+        <li>✅ Better <strong>error reporting with context</strong> (HTTP status, API response, etc.)</li>
+    </ul>
+
+    <hr style="margin: 30px 0;">
+
+    <p style="color: #666; font-size: 14px; text-align: center;">
+        📱 Test the chatbot at: <code>https://sri-map-lk.vercel.app</code> (after Node.js upgrade to 20.19+)<br>
+        📝 Documentation: See CHATBOT_DEBUG_GUIDE.md and CHATBOT_IMPROVEMENTS.md in the repository
+    </p>
+</body>
+</html>
