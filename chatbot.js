@@ -492,7 +492,7 @@ async function buildContextForAI() {
 
     // Restaurants summary - Using GeoJSONLoader
     try {
-        const restaurants = await geoLoader.load('Restaurants_all.geojson');
+        const restaurants = await geoLoader.load('restaurants_all.geojson');
         if (restaurants && restaurants.features.length > 0) {
             context += `\nRESTAURANTS: Total ${restaurants.features.length} restaurants available\n`;
             restaurants.features.slice(0, 5).forEach(feature => {
