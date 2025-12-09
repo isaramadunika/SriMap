@@ -171,6 +171,23 @@ function setupChatbotUI() {
             console.log('[Chatbot] Close button clicked');
             chatbotPanel.classList.add('hidden');
             closeBtn.classList.add('hidden');
+            
+            // Clear all messages and reset chatbot to welcome state
+            const messagesContainer = document.getElementById('chatbot-messages');
+            messagesContainer.innerHTML = `
+                <div class="chatbot-message bot-message">
+                    <div class="message-content">
+                        <p>Hi! 👋 I'm your Map Assistant. Ask me about:</p>
+                        <ul>
+                            <li>Dangerous areas & disasters</li>
+                            <li>Restaurants & food places</li>
+                            <li>Train stations & routes</li>
+                            <li>Roads & highways</li>
+                            <li>Rivers & waterways</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         });
     } else {
         console.warn('[Chatbot] Close button not found');
