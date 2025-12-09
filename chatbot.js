@@ -155,9 +155,14 @@ function setupChatbotUI() {
 
     // Close chatbot panel
     if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Chatbot] Close button clicked');
             chatbotPanel.classList.add('hidden');
         });
+    } else {
+        console.warn('[Chatbot] Close button not found');
     }
 
     // Get user location
