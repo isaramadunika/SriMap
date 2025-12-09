@@ -122,7 +122,156 @@ class GeoJSONLoader {
 
 const geoLoader = new GeoJSONLoader();
 
-// Initialize chatbot
+// Smart Chatbot for local responses without Gemini API
+class SmartChatbot {
+    constructor(geoLoader) {
+        this.geoLoader = geoLoader;
+    }
+
+    async generateAnswer(question, userLat, userLon) {
+        const lowerQ = question.toLowerCase();
+        
+        if (this.isDisasterQuestion(lowerQ)) {
+            return await this.handleDisasterQuestion(question, userLat, userLon);
+        } else if (this.isRailwayQuestion(lowerQ)) {
+            return await this.handleRailwayQuestion(question, userLat, userLon);
+        } else if (this.isRestaurantQuestion(lowerQ)) {
+            return await this.handleRestaurantQuestion(question, userLat, userLon);
+        } else if (this.isHighwayQuestion(lowerQ)) {
+            return await this.handleHighwayQuestion(question, userLat, userLon);
+        } else if (this.isRiverQuestion(lowerQ)) {
+            return await this.handleRiverQuestion(question, userLat, userLon);
+        } else {
+            return this.handleGeneralQuestion(question);
+        }
+    }
+
+    isDisasterQuestion(q) { return ['disaster', 'earthquake', 'flood', 'landslide', 'danger', 'near', 'nearby'].some(k => q.includes(k)); }
+    isRailwayQuestion(q) { return ['train', 'railway', 'station', 'rail', 'transport'].some(k => q.includes(k)); }
+    isRestaurantQuestion(q) { return ['restaurant', 'food', 'eat', 'dining', 'cafe', 'where'].some(k => q.includes(k)); }
+    isHighwayQuestion(q) { return ['highway', 'road', 'route', 'drive', 'path'].some(k => q.includes(k)); }
+    isRiverQuestion(q) { return ['river', 'water', 'stream', 'oya'].some(k => q.includes(k)); }
+
+    async handleDisasterQuestion(question, userLat, userLon) {
+        try {
+            const nearby = await this.geoLoader.findNearby(userLat, userLon, 50, 'disasters');
+            if (nearby.length === 0) {
+                return `✅ Good news! No major disasters recorded within 50 km of your location.`;
+            }
+            let response = `🚨 **Disaster Information Near You**\n\nFound ${nearby.length} disaster areas:\n\n`;
+            const byType = {};
+            nearby.forEach(d => {
+                const type = d.properties?.natural || 'Unknown';
+                if (!byType[type]) byType[type] = [];
+                byType[type].push(d);
+            });
+            Object.entries(byType).forEach(([type, disasters]) => {
+                response += `**${type} (${disasters.length}):**\n`;
+                disasters.slice(0, 3).forEach(d => {
+                    const location = d.properties?.is_in || 'Unknown';
+                    response += `  • ${location} (${d.distance?.toFixed(1) || '?'} km away)\n`;
+                });
+                if (disasters.length > 3) response += `  • ...and ${disasters.length - 3} more\n`;
+            });
+            return response;
+        } catch (e) { return `I couldn't fetch disaster info right now.`; }
+    }
+
+    async handleRailwayQuestion(question, userLat, userLon) {
+        try {
+            const railways = await this.geoLoader.load('ralway_All.geojson');
+            if (!railways) return `No railway data available.`;
+            const stations = railways.features.filter(f => f.properties?.type === 'Station');
+            let response = `🚂 **Railway Information**\n\nTotal stations: ${stations.length}\n`;
+            const nearby = [];
+            stations.forEach(s => {
+                const centroid = this.geoLoader.getGeometryCentroid(s.geometry);
+                if (centroid) {
+                    const dist = this.geoLoader.calculateDistance(userLat, userLon, centroid.lat, centroid.lon);
+                    if (dist < 50) nearby.push({...s, distance: dist});
+                }
+            });
+            if (nearby.length > 0) {
+                response += `\nNearby stations (${nearby.length}):\n`;
+                nearby.sort((a,b) => a.distance - b.distance).slice(0, 5).forEach(s => {
+                    response += `  • ${s.properties?.name || 'Unnamed'} (${s.distance?.toFixed(1) || '?'} km)\n`;
+                });
+            } else {
+                response += `\nNo stations within 50 km.`;
+            }
+            return response;
+        } catch (e) { return `I couldn't fetch railway info right now.`; }
+    }
+
+    async handleRestaurantQuestion(question, userLat, userLon) {
+        try {
+            const restaurants = await this.geoLoader.load('restaurants_all.geojson');
+            if (!restaurants) return `No restaurant data available.`;
+            const nearby = [];
+            restaurants.features.forEach(r => {
+                if (r.geometry?.coordinates) {
+                    const [lon, lat] = r.geometry.coordinates;
+                    const dist = this.geoLoader.calculateDistance(userLat, userLon, lat, lon);
+                    if (dist < 50) nearby.push({...r, distance: dist});
+                }
+            });
+            if (nearby.length === 0) return `📍 No restaurants within 50 km of your location.`;
+            nearby.sort((a,b) => a.distance - b.distance);
+            let response = `🍽️ **Restaurants Near You**\n\nFound ${nearby.length} restaurants:\n\n`;
+            nearby.slice(0, 10).forEach((r, i) => {
+                response += `${i+1}. ${r.properties?.name || 'Restaurant'} (${r.distance?.toFixed(1) || '?'} km)\n`;
+            });
+            if (nearby.length > 10) response += `\n...and ${nearby.length - 10} more.`;
+            return response;
+        } catch (e) { return `I couldn't fetch restaurant info right now.`; }
+    }
+
+    async handleHighwayQuestion(question, userLat, userLon) {
+        try {
+            const highways = await this.geoLoader.load('HW_all.geojson');
+            if (!highways) return `No highway data available.`;
+            const types = {};
+            highways.features.forEach(h => {
+                const type = h.properties?.highway || 'Unknown';
+                types[type] = (types[type] || 0) + 1;
+            });
+            let response = `🛣️ **Road Network**\n\nTotal roads: ${highways.features.length}\n\nRoad types:\n`;
+            Object.entries(types).sort((a,b) => b[1] - a[1]).slice(0, 6).forEach(([type, count]) => {
+                response += `  • ${type}: ${count}\n`;
+            });
+            return response;
+        } catch (e) { return `I couldn't fetch highway info right now.`; }
+    }
+
+    async handleRiverQuestion(question, userLat, userLon) {
+        try {
+            const rivers = await this.geoLoader.load('Oya_all.geojson');
+            if (!rivers) return `No river data available.`;
+            const named = rivers.features.filter(r => r.properties?.name);
+            let response = `💧 **Rivers & Waterways**\n\nTotal waterways: ${rivers.features.length}\n\n`;
+            if (named.length > 0) {
+                response += `Major rivers:\n`;
+                named.slice(0, 8).forEach(r => {
+                    response += `  • ${r.properties?.name}\n`;
+                });
+            }
+            return response;
+        } catch (e) { return `I couldn't fetch river info right now.`; }
+    }
+
+    handleGeneralQuestion(question) {
+        let response = `I can help with:\n\n`;
+        response += `🚨 **Disasters** - Near you\n`;
+        response += `🚂 **Railways** - Stations & routes\n`;
+        response += `🍽️ **Restaurants** - Dining options\n`;
+        response += `🛣️ **Highways** - Road networks\n`;
+        response += `💧 **Rivers** - Waterways\n\n`;
+        response += `Try: "What nearby disasters?" or "Show restaurants near me"`;
+        return response;
+    }
+}
+
+const smartChatbot = new SmartChatbot(geoLoader);
 export function initChatbot(disasterData, restaurantData, trainData, highwayData, riverData) {
     geoJsonData.disasters = disasterData.features || [];
     geoJsonData.restaurants = restaurantData.features || [];
@@ -278,23 +427,36 @@ async function getAIResponseWithRetry(userMessage) {
 }
 
 async function getAIResponse(userMessage) {
+    // Use Smart Chatbot for local responses (no API needed!)
+    try {
+        console.log('[Chatbot] Using SmartChatbot for response...');
+        
+        if (!userLocation) {
+            return `I need your location to provide accurate information. Please enable location services.`;
+        }
+
+        const response = await smartChatbot.generateAnswer(
+            userMessage, 
+            userLocation.lat, 
+            userLocation.lon
+        );
+        
+        console.log('[Chatbot] SmartChatbot response generated');
+        return response;
+    } catch (error) {
+        console.error('[Chatbot] SmartChatbot error:', error);
+        return `I couldn't process that request. Please try again.`;
+    }
+}
+
+// Legacy: Call Gemini API if needed (commented out - not used by default)
+/*
+async function getAIResponseWithGemini(userMessage) {
     const context = await buildContextForAI();
     
-    const prompt = `You are a helpful map assistant for Sri Lanka. You have access to data about disasters, restaurants, train routes, highways, and rivers.
-
-
-User question: "${userMessage}"
-
-Map data summary:
-${context}
-
-Please answer the user's question in a natural, conversational way. Be specific about locations when possible. Keep your response short and easy to understand (2-3 sentences max).`;
+    const prompt = `You are a helpful map assistant for Sri Lanka. User asked: "${userMessage}"`;
 
     try {
-        console.log('[Chatbot] Building API request...');
-        console.log('[Chatbot] API URL:', GEMINI_API_URL.substring(0, 50) + '...');
-        console.log('[Chatbot] Context length:', context.length);
-
         const requestBody = {
             contents: [{
                 parts: [{
@@ -303,7 +465,6 @@ Please answer the user's question in a natural, conversational way. Be specific 
             }]
         };
 
-        console.log('[Chatbot] Sending fetch request...');
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
@@ -312,47 +473,18 @@ Please answer the user's question in a natural, conversational way. Be specific 
             body: JSON.stringify(requestBody)
         });
 
-        console.log('[Chatbot] Response received:', response.status, response.statusText);
-
         if (!response.ok) {
-            const responseText = await response.text();
-            console.error('[Chatbot] API Error Response:', responseText);
-            throw new Error(`API Error: ${response.status} - ${response.statusText} - ${responseText.substring(0, 200)}`);
+            throw new Error(`API Error: ${response.status}`);
         }
 
-        const responseText = await response.text();
-        console.log('[Chatbot] Response text length:', responseText.length);
-
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error('[Chatbot] JSON Parse Error:', parseError);
-            console.error('[Chatbot] Response text:', responseText.substring(0, 500));
-            throw new Error('Failed to parse API response as JSON');
-        }
-
-        console.log('[Chatbot] Parsed response has candidates:', !!data.candidates);
-        
-        if (!data.candidates || !Array.isArray(data.candidates) || data.candidates.length === 0) {
-            console.error('[Chatbot] Invalid candidates:', data.candidates);
-            throw new Error('Invalid API response format: missing or empty candidates');
-        }
-
-        if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-            console.error('[Chatbot] Invalid content:', data.candidates[0].content);
-            throw new Error('Invalid API response format: missing content or parts');
-        }
-
-        const reply = data.candidates[0].content.parts[0].text;
-        console.log('[Chatbot] Got reply:', reply.substring(0, 100) + '...');
-        return reply;
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
     } catch (error) {
-        console.error('[Chatbot] Full error:', error);
-        console.error('[Chatbot] Error message:', error.message);
+        console.error('[Chatbot] Gemini API error:', error);
         throw error;
     }
 }
+*/
 
 // Calculate distance between two coordinates in kilometers
 function calculateDistance(lat1, lon1, lat2, lon2) {
