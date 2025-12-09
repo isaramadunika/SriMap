@@ -885,9 +885,23 @@ function addMessageToChat(message, sender) {
     const messageEl = document.createElement('div');
     messageEl.className = `chatbot-message ${sender}-message`;
     
-    const p = document.createElement('p');
-    p.textContent = message;
-    messageEl.appendChild(p);
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    // Check if message contains markdown or HTML-like content
+    if (message.includes('**') || message.includes('•') || message.includes('🔴') || message.includes('🍽️')) {
+        // Parse simple markdown
+        let html = message
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+        contentDiv.innerHTML = html;
+    } else {
+        const p = document.createElement('p');
+        p.textContent = message;
+        contentDiv.appendChild(p);
+    }
+    
+    messageEl.appendChild(contentDiv);
     messagesContainer.appendChild(messageEl);
 
     // Scroll to bottom
