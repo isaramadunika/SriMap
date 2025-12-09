@@ -145,15 +145,23 @@ function setupChatbotUI() {
         return;
     }
 
-    // Open chatbot panel
+    // Toggle chatbot panel with open button
     if (openBtn) {
-        openBtn.addEventListener('click', () => {
-            chatbotPanel.classList.remove('hidden');
-            input.focus();
+        openBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Chatbot] Open button clicked - toggling panel');
+            const isHidden = chatbotPanel.classList.contains('hidden');
+            if (isHidden) {
+                chatbotPanel.classList.remove('hidden');
+                input.focus();
+            } else {
+                chatbotPanel.classList.add('hidden');
+            }
         });
     }
 
-    // Close chatbot panel
+    // Close chatbot panel with X button
     if (closeBtn) {
         closeBtn.addEventListener('click', (e) => {
             e.preventDefault();
