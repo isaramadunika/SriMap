@@ -467,30 +467,44 @@ main {
 }
 
 .chatbot-close-btn {
-  background: rgba(255, 255, 255, 0.2);
+  display: none;
+}
+
+/* Floating Close Button (Always Visible) */
+.chatbot-close-floating-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   border: none;
   color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  padding: 0;
-  pointer-events: auto;
-  z-index: 1001;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+  z-index: 999;
+  transition: all 0.3s ease;
 }
 
-.chatbot-close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
+.chatbot-close-floating-btn:not(.hidden) {
+  display: flex;
 }
 
-.chatbot-close-btn:active {
-  background: rgba(255, 255, 255, 0.4);
+.chatbot-close-floating-btn.hidden {
+  display: none;
+}
+
+.chatbot-close-floating-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(220, 38, 38, 0.5);
+}
+
+.chatbot-close-floating-btn:active {
+  transform: scale(0.95);
 }
 
 /* Messages Area */
