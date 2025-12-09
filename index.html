@@ -40,19 +40,27 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
     </button>
 
-    <!-- Chatbot Panel - Modern Design -->
-    <div id="chatbot-panel" class="chatbot-panel">
+    <!-- Floating Chatbot Icon Button -->
+    <button id="open-chatbot" class="chatbot-floating-btn" title="Open chat">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+
+    <!-- Chatbot Popup Panel -->
+    <div id="chatbot-panel" class="chatbot-panel hidden">
         <div class="chatbot-header">
             <div class="chatbot-header-content">
                 <h3>Map Assistant</h3>
-                <p>Ask about disasters, restaurants, routes & more</p>
+                <p>Ask about map features</p>
             </div>
+            <button id="close-chatbot" class="chatbot-close-btn" title="Close chat">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
         <div id="chatbot-messages" class="chatbot-messages">
             <div class="chatbot-message bot-message">
                 <div class="message-content">
                     <p>Hi! 👋 I'm your Map Assistant. Ask me about:</p>
-                    <ul style="margin: 8px 0 0 0; padding-left: 16px; font-size: 13px;">
+                    <ul>
                         <li>Dangerous areas & disasters</li>
                         <li>Restaurants & food places</li>
                         <li>Train stations & routes</li>

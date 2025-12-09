@@ -136,13 +136,28 @@ export function initChatbot(disasterData, restaurantData, trainData, highwayData
 function setupChatbotUI() {
     const chatbotPanel = document.getElementById('chatbot-panel');
     const openBtn = document.getElementById('open-chatbot');
-    const closeBtn = document.getElementById('toggle-chatbot');
+    const closeBtn = document.getElementById('close-chatbot');
     const sendBtn = document.getElementById('chatbot-send');
     const input = document.getElementById('chatbot-input');
 
     if (!chatbotPanel || !sendBtn || !input) {
         console.warn('Chatbot UI elements not found');
         return;
+    }
+
+    // Open chatbot panel
+    if (openBtn) {
+        openBtn.addEventListener('click', () => {
+            chatbotPanel.classList.remove('hidden');
+            input.focus();
+        });
+    }
+
+    // Close chatbot panel
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            chatbotPanel.classList.add('hidden');
+        });
     }
 
     // Get user location
